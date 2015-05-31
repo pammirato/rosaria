@@ -25,10 +25,10 @@ add_message_files(
   BumperState.msg
 )
 #uncomment if you have defined services
-#add_service_files(
-#  FILES
-#  # TODO: List your msg files here
-#)
+add_service_files(
+  FILES
+  IsRobotStopped.srv
+)
 
 generate_dynamic_reconfigure_options(cfg/RosAria.cfg)
 
@@ -63,7 +63,7 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-    DEPENDS roscpp nav_msgs geometry_msgs sensor_msgs tf
+    DEPENDS roscpp nav_msgs geometry_msgs sensor_msgs tf message_runtime
 )
 
 #############

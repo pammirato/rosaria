@@ -15,6 +15,8 @@
 #include <sensor_msgs/point_cloud_conversion.h> // can optionally publish sonar as new type pointcloud2
 #include "nav_msgs/Odometry.h"
 #include "rosaria/BumperState.h"
+#include "rosaria/IsRobotStopped.h"
+
 #include "tf/tf.h"
 #include "tf/transform_listener.h"  //for tf::getPrefixParam
 #include <tf/transform_broadcaster.h>
@@ -52,7 +54,6 @@ class RosAriaNode
     void sonarConnectCb();
     void dynamic_reconfigureCB(rosaria::RosAriaConfig &config, uint32_t level);
     void readParameters();
-
   protected:
     ros::NodeHandle n;
     ros::Publisher pose_pub;
@@ -76,8 +77,15 @@ class RosAriaNode
 
     ros::ServiceServer enable_srv;
     ros::ServiceServer disable_srv;
+    ros::ServiceServer is_robot_stopped_srv;
+
     bool enable_motors_cb(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
     bool disable_motors_cb(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+    bool is_robot_stopped_cb(rosaria::IsRobotStopped::Request &req,
+                    rosaria::IsRobotStopped::Response &res);
+
+
+
 
     ros::Time veltime;
 
@@ -119,6 +127,20 @@ class RosAriaNode
     // dynamic_reconfigure
     dynamic_reconfigure::Server<rosaria::RosAriaConfig> *dynamic_reconfigure_server;
 };
+
+
+bool RosAriaNode::is_robot_stopped_cb(rosaria::IsRobotStopped::Request &req,
+                        rosaria::IsRobotStopped::Response &res)
+
+{
+  robot->lock();
+  res.isStopped = robot->isStopped();
+   
+  robot->unlock();
+  return true;
+
+
+}//end is robot stopped
 
 void RosAriaNode::readParameters()
 {
@@ -330,7 +352,9 @@ RosAriaNode::RosAriaNode(ros::NodeHandle nh) :
    // advertise enable/disable services
   enable_srv = n.advertiseService("enable_motors", &RosAriaNode::enable_motors_cb, this);
   disable_srv = n.advertiseService("disable_motors", &RosAriaNode::disable_motors_cb, this);
-  
+  is_robot_stopped_srv =  n.advertiseService("is_robot_stopped", &RosAriaNode::is_robot_stopped_cb, this); 
+
+
   veltime = ros::Time::now();
 }
 
