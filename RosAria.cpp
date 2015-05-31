@@ -6,6 +6,7 @@
   #include <Aria/Aria.h>
 #endif
 #include "ros/ros.h"
+#include "std_msgs/String.h"
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -27,7 +28,7 @@
 #include "std_srvs/Empty.h"
 
 #include <sstream>
-
+#include <stdlib.h>
 
 // Node that interfaces between ROS and mobile robot base features via ARIA library. 
 //
@@ -42,6 +43,8 @@ class RosAriaNode
   public:
     int Setup();
     void cmdvel_cb( const geometry_msgs::TwistConstPtr &);
+    void move_cb( const std_msgs::String::ConstPtr &);
+    void heading_cb( const std_msgs::String::ConstPtr &);
     //void cmd_enable_motors_cb();
     //void cmd_disable_motors_cb();
     void spin();
@@ -68,6 +71,8 @@ class RosAriaNode
     bool published_motors_state;
 
     ros::Subscriber cmdvel_sub;
+    ros::Subscriber move_sub;
+    ros::Subscriber heading_sub;
 
     ros::ServiceServer enable_srv;
     ros::ServiceServer disable_srv;
@@ -316,7 +321,13 @@ RosAriaNode::RosAriaNode(ros::NodeHandle nh) :
   cmdvel_sub = n.subscribe( "cmd_vel", 1, (boost::function <void(const geometry_msgs::TwistConstPtr&)>)
     boost::bind(&RosAriaNode::cmdvel_cb, this, _1 ));
 
-  // advertise enable/disable services
+  move_sub = n.subscribe( "move", 1, (boost::function <void(const std_msgs::String::ConstPtr&)>)
+    boost::bind(&RosAriaNode::move_cb, this, _1 ));
+  
+  heading_sub = n.subscribe( "heading", 1, (boost::function <void(const std_msgs::String::ConstPtr&)>)
+    boost::bind(&RosAriaNode::heading_cb, this, _1 ));
+ 
+   // advertise enable/disable services
   enable_srv = n.advertiseService("enable_motors", &RosAriaNode::enable_motors_cb, this);
   disable_srv = n.advertiseService("disable_motors", &RosAriaNode::disable_motors_cb, this);
   
@@ -680,6 +691,30 @@ RosAriaNode::cmdvel_cb( const geometry_msgs::TwistConstPtr &msg)
   ROS_DEBUG("RosAria: sent vels to to aria (time %f): x vel %f mm/s, y vel %f mm/s, ang vel %f deg/s", veltime.toSec(),
     (double) msg->linear.x * 1e3, (double) msg->linear.y * 1.3, (double) msg->angular.z * 180/M_PI);
 }
+
+
+
+
+void
+RosAriaNode::move_cb( const std_msgs::String::ConstPtr &msg)
+{
+  double distance = atof(msg->data.c_str());
+  robot->lock();
+  robot->move(distance);
+  robot->unlock();
+}
+
+
+void
+RosAriaNode::heading_cb( const std_msgs::String::ConstPtr &msg)
+{
+  double heading = atof(msg->data.c_str());
+
+  robot->lock();
+  robot->setHeading(heading);
+  robot->unlock();
+}
+
 
 
 int main( int argc, char** argv )
