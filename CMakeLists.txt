@@ -27,7 +27,7 @@ add_message_files(
 #uncomment if you have defined services
 add_service_files(
   FILES
-  IsRobotStopped.srv
+  get_state.srv
 )
 
 generate_dynamic_reconfigure_options(cfg/RosAria.cfg)
@@ -56,7 +56,7 @@ set_target_properties(RosAria PROPERTIES COMPILE_FLAGS "-fPIC")
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
-  DEPENDENCIES geometry_msgs std_msgs
+  DEPENDENCIES geometry_msgs std_msgs nav_msgs
 )
 # TODO: fill in what other packages will need to use this package
 ## LIBRARIES: libraries you create in this project that dependent projects also need

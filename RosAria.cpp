@@ -15,7 +15,7 @@
 #include <sensor_msgs/point_cloud_conversion.h> // can optionally publish sonar as new type pointcloud2
 #include "nav_msgs/Odometry.h"
 #include "rosaria/BumperState.h"
-#include "rosaria/IsRobotStopped.h"
+#include "rosaria/get_state.h"
 
 #include "tf/tf.h"
 #include "tf/transform_listener.h"  //for tf::getPrefixParam
@@ -77,14 +77,19 @@ class RosAriaNode
 
     ros::ServiceServer enable_srv;
     ros::ServiceServer disable_srv;
-    ros::ServiceServer is_robot_stopped_srv;
+    ros::ServiceServer get_state_srv;
+    ros::ServiceServer move_srv;
+    ros::ServiceServer heading_srv;
+
+
 
     bool enable_motors_cb(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
     bool disable_motors_cb(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
-    bool is_robot_stopped_cb(rosaria::IsRobotStopped::Request &req,
-                    rosaria::IsRobotStopped::Response &res);
+    bool get_state_cb(rosaria::get_state::Request &req,
+                    rosaria::get_state::Response &res);
 
-
+    bool move_srv_cb(  std_msgs::String::ConstPtr& request, std_srvs::Empty::Response& response);
+    bool heading_srv_cb(  std_msgs::String::ConstPtr& request, std_srvs::Empty::Response& response);
 
 
     ros::Time veltime;
@@ -129,18 +134,6 @@ class RosAriaNode
 };
 
 
-bool RosAriaNode::is_robot_stopped_cb(rosaria::IsRobotStopped::Request &req,
-                        rosaria::IsRobotStopped::Response &res)
-
-{
-  robot->lock();
-  res.isStopped = robot->isStopped();
-   
-  robot->unlock();
-  return true;
-
-
-}//end is robot stopped
 
 void RosAriaNode::readParameters()
 {
@@ -352,8 +345,9 @@ RosAriaNode::RosAriaNode(ros::NodeHandle nh) :
    // advertise enable/disable services
   enable_srv = n.advertiseService("enable_motors", &RosAriaNode::enable_motors_cb, this);
   disable_srv = n.advertiseService("disable_motors", &RosAriaNode::disable_motors_cb, this);
-  is_robot_stopped_srv =  n.advertiseService("is_robot_stopped", &RosAriaNode::is_robot_stopped_cb, this); 
-
+  get_state_srv =  n.advertiseService("get_state", &RosAriaNode::get_state_cb, this); 
+  move_srv = n.advertiseService("move", &RosAriaNode::move_srv_cb, this);
+  heading_srv = n.advertiseService("heading", &RosAriaNode::heading_srv_cb, this);
 
   veltime = ros::Time::now();
 }
@@ -699,6 +693,70 @@ bool RosAriaNode::disable_motors_cb(std_srvs::Empty::Request& request, std_srvs:
 	// todo could wait and see if motors do become disabled, and send a response with an error flag if not
     return true;
 }
+
+bool RosAriaNode::get_state_cb(rosaria::get_state::Request &req,
+                        rosaria::get_state::Response &res)
+
+{
+  robot->lock();
+  res.isStopped = robot->isStopped();
+  res.isMoveDone = robot->isMoveDone();
+  res.isHeadingDone = robot->isHeadingDone();
+  res.isTryingToMove = robot->isTryingToMove();
+  res.transVel = robot->getVel(); 
+  res.rotVel = robot->getRotVel();
+
+
+  pos = robot->getPose();
+  tf::poseTFToMsg(tf::Transform(tf::createQuaternionFromYaw(pos.getTh()*M_PI/180), tf::Vector3(pos.getX()/1000,
+    pos.getY()/1000, 0)), position.pose.pose); //Aria returns pose in mm.
+  position.twist.twist.linear.x = robot->getVel()/1000; //Aria returns velocity in mm/s.
+  position.twist.twist.linear.y = robot->getLatVel()/1000.0;
+  position.twist.twist.angular.z = robot->getRotVel()*M_PI/180;
+  
+  position.header.frame_id = frame_id_odom;
+  position.child_frame_id = frame_id_base_link;
+  position.header.stamp = ros::Time::now();
+ 
+  res.pose = position;
+
+  robot->unlock();
+  return true;
+
+
+}//end get_state 
+
+
+
+
+    bool RosAriaNode::move_srv_cb(  std_msgs::String::ConstPtr& request, std_srvs::Empty::Response& response)
+{
+
+
+}
+
+
+
+
+    bool RosAriaNode::heading_srv_cb(  std_msgs::String::ConstPtr& request, std_srvs::Empty::Response& response)
+{
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+//topics
 
 void
 RosAriaNode::cmdvel_cb( const geometry_msgs::TwistConstPtr &msg)

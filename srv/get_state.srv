@@ -5,3 +5,6 @@ int8 isHeadingDone
 int8 isStopped
 float64 transVel
 float64 rotVel
+nav_msgs/Odometry pose
+
+
