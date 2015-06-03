@@ -28,6 +28,9 @@ add_message_files(
 add_service_files(
   FILES
   get_state.srv
+  string_message.srv
+  float_message.srv
+
 )
 
 generate_dynamic_reconfigure_options(cfg/RosAria.cfg)
