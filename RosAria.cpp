@@ -743,8 +743,8 @@ bool RosAriaNode::get_state_cb(rosaria::get_state::Request &req,
   double delta = request.input;
   robot->lock();
   robot->setDeltaHeading(delta);
-  robot->unlock();
   ROS_INFO("CHANGE_HEADDING: %f", delta);
+  robot->unlock();
   response.output = 1;
   return true;
 }
