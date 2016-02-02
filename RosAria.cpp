@@ -362,6 +362,9 @@ int RosAriaNode::Setup()
   // called once per instance, and these objects need to persist until the process terminates.
 
   robot = new ArRobot();
+
+//  robot->setTransVelMax(.0001);
+//  robot->setRotVelMax(.15);
   ArArgumentBuilder *args = new ArArgumentBuilder(); //  never freed
   ArArgumentParser *argparser = new ArArgumentParser(args); // Warning never freed
   argparser->loadDefaultArguments(); // adds any arguments given in /etc/Aria.args.  Useful on robots with unusual serial port or baud rate (e.g. pioneer lx)
@@ -727,6 +730,7 @@ bool RosAriaNode::get_state_cb(rosaria::get_state::Request &req,
  
   
   robot->lock();
+  robot->setTransVelMax(111);
   robot->move(request.input);
   robot->unlock();
 
@@ -742,6 +746,7 @@ bool RosAriaNode::get_state_cb(rosaria::get_state::Request &req,
 
   double delta = request.input;
   robot->lock();
+  robot->setRotVelMax(.15);
   robot->setDeltaHeading(delta);
   ROS_INFO("CHANGE_HEADDING: %f", delta);
   robot->unlock();
