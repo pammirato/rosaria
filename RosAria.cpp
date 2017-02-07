@@ -78,6 +78,7 @@ class RosAriaNode
     ros::ServiceServer get_state_srv;
     ros::ServiceServer move_srv;
     ros::ServiceServer heading_srv;
+    ros::ServiceServer max_speeds_srv;
 
 
 
@@ -88,6 +89,7 @@ class RosAriaNode
 
     bool move_cb(  rosaria::float_message::Request& request, rosaria::float_message::Response& response);
     bool heading_cb(rosaria::float_message::Request& request, rosaria::float_message::Response& response);
+    bool max_speeds_cb(rosaria::float_message::Request& request, rosaria::float_message::Response& response);
 
 
     ros::Time veltime;
@@ -341,6 +343,7 @@ RosAriaNode::RosAriaNode(ros::NodeHandle nh) :
   get_state_srv =  n.advertiseService("get_state", &RosAriaNode::get_state_cb, this); 
   move_srv = n.advertiseService("move", &RosAriaNode::move_cb, this);
   heading_srv = n.advertiseService("heading", &RosAriaNode::heading_cb, this);
+  max_speeds_srv = n.advertiseService("max_speeds", &RosAriaNode::max_speeds_cb, this);
 
   veltime = ros::Time::now();
 }
@@ -695,7 +698,7 @@ bool RosAriaNode::get_state_cb(rosaria::get_state::Request &req,
 
 {
   robot->lock();
-  res.isStopped = robot->isStopped();
+  res.isStopped = (robot->getVel() < .001) && (robot->getRotVel() < .001);
   res.isMoveDone = robot->isMoveDone();
   res.isHeadingDone = robot->isHeadingDone();
   res.isTryingToMove = robot->isTryingToMove();
@@ -730,7 +733,7 @@ bool RosAriaNode::get_state_cb(rosaria::get_state::Request &req,
  
   
   robot->lock();
-  robot->setTransVelMax(111);
+  //robot->setTransVelMax(111);
   robot->move(request.input);
   robot->unlock();
 
@@ -746,7 +749,7 @@ bool RosAriaNode::get_state_cb(rosaria::get_state::Request &req,
 
   double delta = request.input;
   robot->lock();
-  robot->setRotVelMax(.15);
+  //robot->setRotVelMax(15);
   robot->setDeltaHeading(delta);
   ROS_INFO("CHANGE_HEADDING: %f", delta);
   robot->unlock();
@@ -756,6 +759,19 @@ bool RosAriaNode::get_state_cb(rosaria::get_state::Request &req,
 
 
 
+    bool RosAriaNode::max_speeds_cb(   rosaria::float_message::Request& request, rosaria::float_message::Response& response)
+{
+
+  double trans_max = request.input;
+  double rot_max = request.input2;
+  robot->lock();
+  robot->setRotVelMax(rot_max);
+  robot->setTransVelMax(trans_max);
+  ROS_INFO("SETTING MAX (t,r): %f,%f", trans_max, rot_max);
+  robot->unlock();
+  response.output = 1;
+  return true;
+}
 
 
 
